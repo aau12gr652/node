@@ -5,8 +5,8 @@
 
 int main(){
     
-    uint32_t symbols = 42; //Generation size
-    uint32_t symbol_size = 100; //Size of every symbol (bytes)
+    uint32_t symbols = 11; //Generation size
+    uint32_t symbol_size = 1; //Size of every symbol (bytes)
     
     // Typdefs for the encoder/decoder type we wish to use
     typedef kodo::full_rlnc_encoder<fifi::binary8> rlnc_encoder;//Passing af binary finite field obj to the encoder obj
@@ -26,11 +26,11 @@ int main(){
     
     
     
-    Postoffice::createRxSocket(true, PORT, encoder->block_size());
+    Postoffice::createRxSocket(true, PORT, symbol_size);
     
     std::cout << encoder->block_size();
     
-    int i=1;
+    int a=1;
     
     std::cout << "Ready to recieve\n\n" << std::endl;
 //    for (i=0; i!=(symbols); i++) {
@@ -45,22 +45,25 @@ int main(){
 //        std::cout << "Symbol " << i << " recieved: " << payload[0] << "\n" << std::endl;
 //    }
     
-    std::vector<uint8_t> data_out(decoder->block_size());
+    std::vector<uint8_t> data_out(symbols);
+    
+    const char *intermediate_char;
     
     while( 1 )
     {
-        const char *intermediate_char = Postoffice::recieve();
         
-        payload[0] = *intermediate_char; //Recieve the encoded packets
+        for (int i=0; i < encoder->payload_size(); i++) {
+            intermediate_char = Postoffice::recieve();
+            
+            payload[i] = *intermediate_char; //Recieve the encoded packets
+        }
         
         
-        std::cout << "Symbol " << i << " recieved: " << *intermediate_char << "\n" << std::endl;
+        
+        std::cout << "Symbol " << a++ << " recieved: " << *intermediate_char << "\n" << std::endl;
         
         // Pass that packet to the decoder
         decoder->decode( &payload[0] );
-        
-        
-        i++;
         
        
         if (decoder->is_complete()) {
@@ -72,7 +75,13 @@ int main(){
     
     kodo::copy_symbols(kodo::storage(data_out), decoder); 
     
-    std::cout << "\n\n Recieved: " << data_out[0] << data_out[1] << data_out[2] << "\n\n";
+    std::cout << "\n\n Recieved: ";
+    
+    for (int i=0; i< 20 ; i++) {
+        std::cout << data_out[i];
+    }
+    
+    std::cout << "\n" << std::endl;
     
     
     Postoffice::closeConnection();
