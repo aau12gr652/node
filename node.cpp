@@ -4,94 +4,125 @@
 #include "../postoffice/Postoffice.h"
 
 int main(){
+
+	int packet_counter=1;
+    bool has_completed_1 = false;
+    bool has_completed_2 = false;
+    bool has_completed_3 = false;
     
-    uint32_t symbols = 11; //Generation size
-    uint32_t symbol_size = 1; //Size of every symbol (bytes)
+    // Set the number of symbols (i.e. the generation size in RLNC
+    // terminology) and the size of a symbol in bytes 
+    uint32_t symbols_max = 13;
+    uint32_t symbol_size = 1;
+    
+    
+    uint32_t symbols_1 = 5; //The size of HELLO
+    uint32_t symbols_2 = 8; // The size of HELLO WO
+    uint32_t symbols_3 = symbols_max; //The size of HELLO WORLD!
+    
     
     // Typdefs for the encoder/decoder type we wish to use
-    typedef kodo::full_rlnc_encoder<fifi::binary8> rlnc_encoder;//Passing af binary finite field obj to the encoder obj
     typedef kodo::full_rlnc_decoder<fifi::binary8> rlnc_decoder;
     
-    //Make encoding factory with the symbols and their size
-    rlnc_encoder::factory encoder_factory(symbols, symbol_size);    
-    rlnc_encoder::pointer encoder = encoder_factory.build(symbols, symbol_size);
-    
-    rlnc_decoder::factory decoder_factory(symbols, symbol_size);
-    rlnc_decoder::pointer decoder = decoder_factory.build(symbols, symbol_size);
-    
-    //Allocate storage for the payload
-    std::vector<uint8_t> payload(encoder->payload_size());
-    
-    const char* PORT = "4000";
+    //Making the factories
+    rlnc_decoder::factory decoder_factory(symbols_max, symbol_size);
     
     
+    //Making the decoders with different sizes
+    rlnc_decoder::pointer decoder_1 = decoder_factory.build(symbols_1, symbol_size);
+    rlnc_decoder::pointer decoder_2 = decoder_factory.build(symbols_2, symbol_size);
+    rlnc_decoder::pointer decoder_3 = decoder_factory.build(symbols_3, symbol_size);
     
-    Postoffice::createRxSocket(true, PORT, symbol_size);
     
-    std::cout << encoder->block_size();
+    serial_data letter;
     
-    int a=1;
+    //Generate postoffice
+    postoffice po("4000");
     
-    std::cout << "Ready to recieve\n\n" << std::endl;
-//    for (i=0; i!=(symbols); i++) {
-//        
-//        const char *intermediate_char = Postoffice::recieve();
-//        
-//        payload[0] = *intermediate_char; //Recieve the encoded packets
-//        
-//        // Pass that packet to the decoder
-//        decoder->decode( &payload[0] );
-//        
-//        std::cout << "Symbol " << i << " recieved: " << payload[0] << "\n" << std::endl;
-//    }
+    while (1337) {
     
-    std::vector<uint8_t> data_out(symbols);
     
-    const char *intermediate_char;
-    
-    while( 1 )
-    {
+        //Strip of the header
+        char data[100];
+        std::cout << "Jeg modtager!" << std::endl;
+        serial_data received_letter = {po.receive(data,100), data};
         
-        for (int i=0; i < encoder->payload_size(); i++) {
-            intermediate_char = Postoffice::recieve();
-            
-            payload[i] = *intermediate_char; //Recieve the encoded packets
+        std::cout << "Jeg har modtaget!" << std::endl;
+        stamp* header = (stamp*)malloc(sizeof(stamp));
+        serial_data letter_payload = unfrank(received_letter, header);
+        
+        //Zero-pad the received packet up to the generation size
+        memset((uint16_t*)letter_payload.data + header->Layer_Size, 0, header->Generation_Size - header->Layer_Size);
+        
+        std::cout << "Packet received for layer: "<< header->Layer_ID*1 << "size: " << header->Layer_Size*1 << "rec size: " << received_letter.size*1 << std::endl;
+        //Fordel pakkerne til deres respektive decoders
+        
+        
+        if (header->Layer_ID == 3){
+			decoder_3->decode( (uint8_t*)letter_payload.data ); 
+        }
+        else if (header->Layer_ID == 2){
+        	decoder_2->decode( (uint8_t*)letter_payload.data );
+        	decoder_3->decode( (uint8_t*)letter_payload.data );
+        }
+        else{
+        	decoder_1->decode( (uint8_t*)letter_payload.data );
+        	decoder_2->decode( (uint8_t*)letter_payload.data );
+        	decoder_3->decode( (uint8_t*)letter_payload.data );
         }
         
         
         
-        std::cout << "Symbol " << a++ << " recieved: " << *intermediate_char << "\n" << std::endl;
         
-        // Pass that packet to the decoder
-        decoder->decode( &payload[0] );
+        if (decoder_1->is_complete() && has_completed_1==false) {
+            
+            //Create data_out_1 vector with the decoded data
+            std::vector<uint8_t> data_out_1(decoder_1->block_size());
+            kodo::copy_symbols(kodo::storage(data_out_1), decoder_1); 
+            std::cout << "Decoder 1 done with message: ";
+            for (int i=0; i<data_out_1.size(); i++) {
+                 std::cout << data_out_1[i];
+            }
+            std::cout << "\nnumber of packets received: " << packet_counter << std::endl;
+            has_completed_1 = true;
         
-       
-        if (decoder->is_complete()) {
+            
+            
+        }
+        else if (decoder_2->is_complete() && has_completed_2==false) {
+            
+            //Create data_out_2 vector with the decoded data
+            std::vector<uint8_t> data_out_2(decoder_2->block_size());
+            kodo::copy_symbols(kodo::storage(data_out_2), decoder_2); 
+            std::cout << "Decoder 2 done with message: ";
+            for (int i=0; i<data_out_2.size(); i++) {
+                std::cout << data_out_2[i] ;
+            }
+            std::cout << "\nnumber of packets received: " << packet_counter <<std::endl;
+            has_completed_2 = true;
+            break;
+            
+        }
+        else if (decoder_3->is_complete() && has_completed_3==false) {
+            
+            //Create data_out_3 vector with the decoded data
+            std::vector<uint8_t> data_out_3(decoder_3->block_size());
+            kodo::copy_symbols(kodo::storage(data_out_3), decoder_3); 
+            std::cout << "Decoder 3 done with message: ";
+            for (int i=0; i<data_out_3.size(); i++) {
+                std::cout << data_out_3[i];
+            }
+            
+            std::cout << "\nnumber of packets received: " << packet_counter << std::endl;
+            
+            has_completed_3 = true;
+            
             break;
         }
         
+        packet_counter++;
     }
     
-    
-    kodo::copy_symbols(kodo::storage(data_out), decoder); 
-    
-    std::cout << "\n\n Recieved: ";
-    
-    for (int i=0; i< 20 ; i++) {
-        std::cout << data_out[i];
-    }
-    
-    std::cout << "\n" << std::endl;
-    
-    
-    Postoffice::closeConnection();
-        
-    
-    // The decoder is complete, now copy the symbols from the decoder
-    
-    
-    
-    
-
-    
+    po.closeConnection();
+    return 0;
 }
