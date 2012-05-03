@@ -43,32 +43,31 @@ int main(){
     
     
         //Strip of the header
-        char data[100];
-        std::cout << "Jeg modtager!" << std::endl;
-        serial_data received_letter = {po.receive(data,100), data};
+        char data[1500];
         
-        std::cout << "Jeg har modtaget!" << std::endl;
         stamp* header = (stamp*)malloc(sizeof(stamp));
-        serial_data letter_payload = unfrank(received_letter, header);
+        
+        po.receive(data,1500,header);
+        
         
         //Zero-pad the received packet up to the generation size
-        memset((uint16_t*)letter_payload.data + header->Layer_Size, 0, header->Generation_Size - header->Layer_Size);
+        memset((uint16_t*)data + header->Layer_Size, 0, header->Generation_Size - header->Layer_Size);
         
-        std::cout << "Packet received for layer: "<< header->Layer_ID*1 << "size: " << header->Layer_Size*1 << "rec size: " << received_letter.size*1 << std::endl;
+        std::cout << "Packet received for layer: "<< header->Layer_ID*1 << "size: " << header->Layer_Size*1 <<  std::endl;
         //Fordel pakkerne til deres respektive decoders
         
         
         if (header->Layer_ID == 3){
-			decoder_3->decode( (uint8_t*)letter_payload.data ); 
+			decoder_3->decode( (uint8_t*)data ); 
         }
         else if (header->Layer_ID == 2){
-        	decoder_2->decode( (uint8_t*)letter_payload.data );
-        	decoder_3->decode( (uint8_t*)letter_payload.data );
+        	decoder_2->decode( (uint8_t*)data );
+        	decoder_3->decode( (uint8_t*)data );
         }
         else{
-        	decoder_1->decode( (uint8_t*)letter_payload.data );
-        	decoder_2->decode( (uint8_t*)letter_payload.data );
-        	decoder_3->decode( (uint8_t*)letter_payload.data );
+        	decoder_1->decode( (uint8_t*)data );
+        	decoder_2->decode( (uint8_t*)data );
+        	decoder_3->decode( (uint8_t*)data );
         }
         
         
@@ -85,9 +84,7 @@ int main(){
             }
             std::cout << "\nnumber of packets received: " << packet_counter << std::endl;
             has_completed_1 = true;
-        
-            
-            
+                        
         }
         else if (decoder_2->is_complete() && has_completed_2==false) {
             
