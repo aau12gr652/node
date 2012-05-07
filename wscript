@@ -66,9 +66,9 @@ def build(bld):
         cxxflags += ['/O2', '/Ob2', '/W3', '/EHsc']
 
     bld.program(features = 'cxx',
-                source   = ['node.cpp','../postoffice/Postoffice.cpp'],
+                source   = ['node.cpp','../postoffice/Postoffice.cpp', 'decoder.cpp'],
                 target   = 'node',
-                include  = './postoffice/Postoffice.h',
+                include  = ['./postoffice/Postoffice.h', 'decoder.h'],
                 cxxflags = cxxflags,
                 use      = ['kodo_includes', 'boost_includes',
                             'fifi_includes', 'sak_includes']) 
