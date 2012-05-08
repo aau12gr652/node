@@ -35,6 +35,19 @@ class decoder {
     
     
     
+    struct layer_status{
+        uint8_t Layer_ID;
+        uint32_t number_of_packets_received;
+    };
+    
+    
+    std::vector<layer_status> generation_status;
+    
+    uint8_t finished_layer_id;
+    
+    
+    
+    void print_status();
     
     
 public:
@@ -45,10 +58,8 @@ public:
     
     std::vector<uint8_t> decode(stamp* header, void* data);
     
-    
-    uint8_t hasNumberOfLayers();
-    void* getSymbolsInLayer(uint8_t LayerID);
-    bool hasDecoderCompleted(uint8_t decoderForLayerID);
+    uint8_t get_current_generation_id();
+    uint8_t has_finished_decoding();
 };
 
 

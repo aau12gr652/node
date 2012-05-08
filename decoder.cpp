@@ -13,7 +13,7 @@ decoder::decoder(){
     //Initialize instance variables
     is_finished = false;
     CurrentGenerationID = 0;
-    
+    finished_layer_id = 0;
     
     received_data_packets.clear();
     received_stamps.clear();
@@ -26,6 +26,21 @@ decoder::decoder(){
 
 std::vector<uint8_t> decoder::decode(stamp* header, void* data){
     
+    
+
+    
+    //Store the generation status info
+    for (int i=0; i<generation_status.size(); i++) {
+        if (generation_status[i].Layer_ID == header->Layer_ID) {
+            generation_status[i].number_of_packets_received++;
+            break;
+        }
+        else if (generation_status.size() == i-1){
+            generation_status.resize(i+1);
+            generation_status[i+1].Layer_ID = header->Layer_ID;
+            generation_status[i+1].number_of_packets_received++;
+        }
+    }
     
     
     //Zero pad the incoming data
@@ -46,17 +61,23 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
         
     }
     
-    received_data_packets.insert(received_data_packets.begin(), data);
+    char data_stored[sizeof(*data)];
+    memcpy(data_stored , data , sizeof(*data));
+    received_data_packets.insert(received_data_packets.begin(), data_stored);
+    
     received_stamps.insert(received_stamps.begin(),*header);
+    
     
     
     //Check if it's the first generation or a different one than before
     if (CurrentGenerationID == 0 || CurrentGenerationID != header->Generation_ID) {
 
-        cout << "new generation detected" <<endl;
+        //cout << "new generation detected" <<endl;
+        
+        
 
         //If there is any decoders, then check if they are done and empty them
-        if (decoderinfo.size() != 0) {
+        if (decoderinfo.size() != 0 && is_finished == false) {
             
             int finishedDecoderWithHighestLayerID = 0;
             
@@ -73,33 +94,37 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
             
             
             //copy the decoded symbols
-            
             data_out.resize(decoders[finishedDecoderWithHighestLayerID] -> block_size());
             kodo::copy_symbols(kodo::storage(data_out), decoders[finishedDecoderWithHighestLayerID]);
             
+            print_status();
             
-            //A little debugging
-            cout << "Decoder: " << decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID*1<< " chosen" << endl << endl;
+            finished_layer_id = decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID;
             
-            
-            for (int i=0; i<decoderinfo[finishedDecoderWithHighestLayerID].Layer_Size; i++) {
-                cout << data_out[i];
-            }
-            cout << endl << endl;
             
         }
         
 
         
+        is_finished = false;
+        
+        finished_layer_id = 0;
+        
         
         //Clear the vectors holding the decoders from the old generation (Also calls the destructors of the elements in the vectors)
         decoderinfo.clear();
         decoders.clear();
+        generation_status.clear();
         received_stamps.resize(1);
         received_data_packets.resize(1);
         
         
-        is_finished = true;
+        //Store the first layer information for the new generation
+        generation_status.resize(1);
+        generation_status[0].Layer_ID = header->Layer_ID;
+        generation_status[0].number_of_packets_received++; 
+        
+        
         
         
         
@@ -111,41 +136,52 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
     }
     else{
         
-        is_finished = false;
-        
         //Create a new decoder if the current Layer_ID is not represented
         if (decoderAlreadyCreated == false) {
-            cout << "New Layer detected!" << endl;
+            //cout << "New Layer detected!" << endl;
             createDecoderWithHeader(header);
         }
 
     }
     
     
-    
     //distribute the received packet to where it belongs by deciding upon the Layer_ID
     for (int i=0; i<decoderinfo.size(); i++) {
-        
-        cout << *(char*)data << " " << header->Layer_Size*1 << endl;
-        
+                
         if (decoderinfo[i].Layer_ID >= header->Layer_ID) {
+            
+            //print_stamp(header);
+            
             decoders[i]->decode((uint8_t *)data);
-            cout << "Decoding Layer: " << decoderinfo[i].Layer_ID*1 << endl;
+            
+            //cout << "Decoding Layer: " << decoderinfo[i].Layer_ID*1 << endl;
         }
         
-        if (decoders[i]->is_complete()) {
-            cout << "Decoder: " << decoderinfo[i].Layer_ID*1 << " Completed"<<endl;
-        }
         
+        //if the largest decoder is complete then set the generation to finished!
+        if (decoders[i]->is_complete() && decoderinfo[i].Layer_ID == header->Number_Of_Layers && is_finished == false) {
+            print_status();
+
+            //copy the decoded symbols
+            
+            data_out.resize(decoders[i] -> block_size());
+            kodo::copy_symbols(kodo::storage(data_out), decoders[i]);
+            
+            finished_layer_id = decoderinfo[i].Layer_ID;
+            
+            is_finished = true;
+            
+                        
+            
+        }
         
     }
-
+    
     return data_out;
-    
 
-    
-    
 }
+
+
 
 void decoder::createDecoderWithHeader(stamp* header){
     
@@ -155,27 +191,21 @@ void decoder::createDecoderWithHeader(stamp* header){
     decoderInfoStruct newDecoderInfo = {header->Layer_Size,header->Layer_ID,false};
     
     decoderinfo.push_back(newDecoderInfo);
-    
-    //cout << "Decoder for layer: " << header->Layer_ID*1 << " Generation: " << header->Generation_ID*1 <<endl;
+        
     
     
     //Distribute the relevant old packets to the new decoder
     
-    for (int i=0; i<decoderinfo.size(); i++) {
-        //cout << "\n\nChecking decoder: " << decoderinfo[i].Layer_ID*1 << endl;
-        
+    for (int i=0; i<decoderinfo.size(); i++) {        
         
         if (decoderinfo[i].Layer_ID <= header->Layer_ID) {
             
             for (int n=0; n<received_data_packets.size(); n++) {
-                
-                //cout << received_stamps[n].Layer_ID*1 << " " << decoderinfo[i].Layer_ID*1 << " " << endl;
-                
+                                
                 if (received_stamps[n].Layer_ID < decoderinfo[i].Layer_ID) {
                     
                     decoders[i]->decode((uint8_t *)received_data_packets[n]);
                     
-                    cout << "Added packet from Layer: " << received_stamps[n].Layer_ID*1 << " to decoder: " << decoderinfo[i].Layer_ID*1 << endl;
                 }
                 
                 
@@ -184,3 +214,31 @@ void decoder::createDecoderWithHeader(stamp* header){
     }
     
 }
+
+
+
+void decoder::print_status(){
+    
+    for (int i=0; i<generation_status.size(); i++) {
+        //cout << "Layer ID: " << generation_status[i].Layer_ID*1 << " Packets received: " << generation_status[i].number_of_packets_received << endl;
+    }
+    
+    
+}
+
+
+uint8_t decoder::has_finished_decoding(){
+    
+    if (finished_layer_id) {
+        
+        return finished_layer_id;
+    }
+    
+    return 0;
+}
+
+
+uint8_t decoder::get_current_generation_id(){
+    return CurrentGenerationID;
+}
+
