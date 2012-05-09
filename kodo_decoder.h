@@ -7,7 +7,7 @@
 #define _decoder_h
 
 #include "kodo/rlnc/full_vector_codes.h"
-#include "../postoffice/Postoffice.h"
+#include <postoffice/Postoffice.h>
 
 class kodo_decoder {
 
