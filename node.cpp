@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "../postoffice/Postoffice.h"
-#include "decoder.h"
+#include "kodo_decoder.h"
 
 using namespace std;
 
@@ -10,7 +10,7 @@ int main(){
     
     vector<uint8_t> returnval(13);
     
-    decoder Mydecoder=decoder();
+    kodo_decoder Mydecoder=kodo_decoder();
     
     postoffice po("4000");
     
