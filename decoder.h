@@ -56,7 +56,7 @@ public:
     
     decoder();
     
-    std::vector<uint8_t> decode(stamp* header, void* data);
+    std::vector<uint8_t> decode(stamp* header, serial_data letter);
     
     uint8_t get_current_generation_id();
     uint8_t has_finished_decoding();

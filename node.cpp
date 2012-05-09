@@ -20,9 +20,17 @@ int main(){
     
     int decoded_generation_id=0;
     
+    serial_data* received_letter = (serial_data*)malloc(sizeof(serial_data));;
+    
     while (1) {
-        po.receive(data, 100, header);
         
+        received_letter->size = po.receive(data, 100, header);
+        
+        received_letter->data = data;
+        
+        
+        
+        //cout<< "modtog fra lag: " << header->Layer_ID*1 << endl;
         
         if (Mydecoder.has_finished_decoding() && Mydecoder.get_current_generation_id() != decoded_generation_id) {
             
@@ -30,12 +38,14 @@ int main(){
             for (int i=0; i<returnval.size(); i++) {
                 cout << returnval[i];
             }
-            cout << " Generation: " << Mydecoder.get_current_generation_id()*1 << endl;
+            cout << endl << " Generation: " << Mydecoder.get_current_generation_id()*1 << endl << endl;
             
             decoded_generation_id = Mydecoder.get_current_generation_id();
             
         }
-        returnval = Mydecoder.decode(header,(void*)data);
+        
+        returnval = Mydecoder.decode(header,*received_letter);
+        
     }
         
         

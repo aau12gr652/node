@@ -24,10 +24,10 @@ decoder::decoder(){
     
 }
 
-std::vector<uint8_t> decoder::decode(stamp* header, void* data){
+std::vector<uint8_t> decoder::decode(stamp* header, serial_data letter){
     
+    void* data = letter.data;
     
-
     
     //Store the generation status info
     for (int i=0; i<generation_status.size(); i++) {
@@ -35,16 +35,14 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
             generation_status[i].number_of_packets_received++;
             break;
         }
-        else if (generation_status.size() == i-1){
-            generation_status.resize(i+1);
-            generation_status[i+1].Layer_ID = header->Layer_ID;
-            generation_status[i+1].number_of_packets_received++;
+        else if (generation_status.size() == i+1){
+            layer_status newlayerstatus = {header->Layer_ID,1};
+            generation_status.push_back(newlayerstatus);
         }
     }
     
     
-    //Zero pad the incoming data
-    memset((uint16_t*)data + header->Layer_Size, 0, header->Generation_Size - header->Layer_Size);
+    
      
     
     //Decide wether the new Layer_ID is represented by a decoder
@@ -61,10 +59,23 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
         
     }
     
-    char data_stored[sizeof(*data)];
-    memcpy(data_stored , data , sizeof(*data));
+    
+    void *data_stored = malloc(1500);
+    
+    memcpy(data_stored , data , letter.size);
+    
+    //Zero pad the incoming data
+    memset((uint16_t*)data_stored + letter.size, 0, 1500-letter.size);
+    
+    //Store the received packet as the first element
+    
     received_data_packets.insert(received_data_packets.begin(), data_stored);
     
+    
+    //print_some_shit(data, 11);
+    //cout << "her: " << *(char*)received_data_packets[0]<< " " << *(char*)data << endl;
+    
+    //Store the received stamp as the first element
     received_stamps.insert(received_stamps.begin(),*header);
     
     
@@ -74,10 +85,11 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
 
         //cout << "new generation detected" <<endl;
         
-        
-
+                
         //If there is any decoders, then check if they are done and empty them
         if (decoderinfo.size() != 0 && is_finished == false) {
+            
+            //cout << "finished ON new generation" << endl;
             
             int finishedDecoderWithHighestLayerID = 0;
             
@@ -85,7 +97,7 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
             for (int i=0; i<decoders.size(); i++) {
                 if (decoders[i]->is_complete()) {
                     
-                    if (finishedDecoderWithHighestLayerID<decoderinfo[i].Layer_ID) {
+                    if (finishedDecoderWithHighestLayerID<=decoderinfo[i].Layer_ID) {
                         finishedDecoderWithHighestLayerID = i;
                     }
                     
@@ -103,12 +115,15 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
             
             
         }
+        else{
+            is_finished = false;
+            
+            finished_layer_id = 0;
+        }
         
 
         
-        is_finished = false;
         
-        finished_layer_id = 0;
         
         
         //Clear the vectors holding the decoders from the old generation (Also calls the destructors of the elements in the vectors)
@@ -122,7 +137,7 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
         //Store the first layer information for the new generation
         generation_status.resize(1);
         generation_status[0].Layer_ID = header->Layer_ID;
-        generation_status[0].number_of_packets_received++; 
+        generation_status[0].number_of_packets_received=1; 
         
         
         
@@ -131,7 +146,7 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
         //Create a decoder for the first packet
         createDecoderWithHeader(header);
 
-        CurrentGenerationID = header->Generation_ID;
+        
         
     }
     else{
@@ -143,6 +158,7 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
         }
 
     }
+    
     
     
     //distribute the received packet to where it belongs by deciding upon the Layer_ID
@@ -160,6 +176,8 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
         
         //if the largest decoder is complete then set the generation to finished!
         if (decoders[i]->is_complete() && decoderinfo[i].Layer_ID == header->Number_Of_Layers && is_finished == false) {
+            
+            //cout << "finished before new generation" << endl;
             print_status();
 
             //copy the decoded symbols
@@ -177,20 +195,29 @@ std::vector<uint8_t> decoder::decode(stamp* header, void* data){
         
     }
     
+    CurrentGenerationID = header->Generation_ID;
+    
     return data_out;
 
 }
 
-
+void print_some_shit(void* data, int size)
+{
+    for (int n = 0; n < size; n++)
+        cout << ((uint8_t*)data)[n]*1 << " ";
+    cout << endl;
+}
 
 void decoder::createDecoderWithHeader(stamp* header){
     
-    
     decoders.push_back(decoder_factory->build(header->Layer_Size, header->Symbol_Size));
+    
     
     decoderInfoStruct newDecoderInfo = {header->Layer_Size,header->Layer_ID,false};
     
     decoderinfo.push_back(newDecoderInfo);
+    
+    
         
     
     
@@ -204,8 +231,10 @@ void decoder::createDecoderWithHeader(stamp* header){
                                 
                 if (received_stamps[n].Layer_ID < decoderinfo[i].Layer_ID) {
                     
-                    decoders[i]->decode((uint8_t *)received_data_packets[n]);
+                    decoders[i]->decode((uint8_t *)(received_data_packets[n]));
+                    //print_some_shit(received_data_packets[n], 11);
                     
+                    //cout << "Packet: " << n*1 << " ->Decoder: " << decoderinfo[i].Layer_ID*1 << endl;
                 }
                 
                 
@@ -220,11 +249,12 @@ void decoder::createDecoderWithHeader(stamp* header){
 void decoder::print_status(){
     
     for (int i=0; i<generation_status.size(); i++) {
-        //cout << "Layer ID: " << generation_status[i].Layer_ID*1 << " Packets received: " << generation_status[i].number_of_packets_received << endl;
+        cout << "Layer ID: " << generation_status[i].Layer_ID*1 << " Packets received: " << generation_status[i].number_of_packets_received-1 << endl;
     }
     
     
 }
+
 
 
 uint8_t decoder::has_finished_decoding(){
