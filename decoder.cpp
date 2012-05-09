@@ -28,21 +28,7 @@ std::vector<uint8_t> decoder::decode(stamp* header, serial_data letter){
     
     void* data = letter.data;
     
-    
-    //Store the generation status info
-    for (int i=0; i<generation_status.size(); i++) {
-        if (generation_status[i].Layer_ID == header->Layer_ID) {
-            generation_status[i].number_of_packets_received++;
-            break;
-        }
-        else if (generation_status.size() == i+1){
-            layer_status newlayerstatus = {header->Layer_ID,1};
-            generation_status.push_back(newlayerstatus);
-        }
-    }
-    
-    
-    
+
      
     
     //Decide wether the new Layer_ID is represented by a decoder
@@ -86,7 +72,7 @@ std::vector<uint8_t> decoder::decode(stamp* header, serial_data letter){
         //cout << "new generation detected" <<endl;
         
                 
-        //If there is any decoders, then check if they are done and empty them
+        //If there is any old decoders, then check if they are done and empty them
         if (decoderinfo.size() != 0 && is_finished == false) {
             
             //cout << "finished ON new generation" << endl;
@@ -111,6 +97,7 @@ std::vector<uint8_t> decoder::decode(stamp* header, serial_data letter){
             
             print_status();
             
+            is_finished = true;
             finished_layer_id = decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID;
             
             
@@ -150,6 +137,8 @@ std::vector<uint8_t> decoder::decode(stamp* header, serial_data letter){
         
     }
     else{
+        
+        is_finished = false;
         
         //Create a new decoder if the current Layer_ID is not represented
         if (decoderAlreadyCreated == false) {
@@ -195,8 +184,21 @@ std::vector<uint8_t> decoder::decode(stamp* header, serial_data letter){
         
     }
     
-    CurrentGenerationID = header->Generation_ID;
     
+    //Store the generation status info
+    for (int i=0; i<generation_status.size(); i++) {
+        if (generation_status[i].Layer_ID == header->Layer_ID) {
+            generation_status[i].number_of_packets_received++;
+            break;
+        }
+        else if (generation_status.size() == i+1){
+            layer_status newlayerstatus = {header->Layer_ID,1};
+            generation_status.push_back(newlayerstatus);
+        }
+    }
+    
+    
+    CurrentGenerationID = header->Generation_ID;
     return data_out;
 
 }
@@ -249,7 +251,7 @@ void decoder::createDecoderWithHeader(stamp* header){
 void decoder::print_status(){
     
     for (int i=0; i<generation_status.size(); i++) {
-        cout << "Layer ID: " << generation_status[i].Layer_ID*1 << " Packets received: " << generation_status[i].number_of_packets_received-1 << endl;
+        cout << "Layer ID: " << generation_status[i].Layer_ID*1 << " Packets received: " << generation_status[i].number_of_packets_received << endl;
     }
     
     
