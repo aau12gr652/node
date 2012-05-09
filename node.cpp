@@ -22,13 +22,15 @@ int main(){
     
     serial_data* received_letter = (serial_data*)malloc(sizeof(serial_data));;
     
+    Mydecoder.status_output = false;
+    
     while (1) {
         
         received_letter->size = po.receive(data, 100, header);
         
         received_letter->data = data;
         
-        
+        returnval = Mydecoder.decode(header,*received_letter);
         
         //cout<< "modtog fra lag: " << header->Layer_ID*1 << endl;
         
@@ -44,7 +46,7 @@ int main(){
             
         }
         
-        returnval = Mydecoder.decode(header,*received_letter);
+        
         
     }
         

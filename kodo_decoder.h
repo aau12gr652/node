@@ -33,7 +33,7 @@ class kodo_decoder {
     std::vector<rlnc_decoder::pointer> decoders;
     std::vector<decoderInfoStruct> decoderinfo;
     
-    
+    void distribute_packet_to_decoders(stamp* header, void* data);
     
     struct layer_status{
         uint8_t Layer_ID;
@@ -52,9 +52,10 @@ class kodo_decoder {
     
 public:
     
-    bool is_finished;
+    uint8_t is_finished; //Has the value 0 if false, 1 if it finished the highest layer, 2 if it was forced to finish
     
     kodo_decoder();
+    bool status_output;
     
     std::vector<uint8_t> decode(stamp* header, serial_data letter);
     
