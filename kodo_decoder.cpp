@@ -71,7 +71,7 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
             print_status();
 
             //Find the finished decoder with the highest layer ID
-            int finishedDecoderWithHighestLayerID = 0;
+            int finishedDecoderWithHighestLayerID = -1;
 
             for (int i=0; i<decoders.size(); i++) {
                 if (decoders[i]->is_complete())
@@ -79,15 +79,20 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
                         finishedDecoderWithHighestLayerID = i;
             }
 
-
-            //copy the decoded symbols
-            data_out.resize(decoders[finishedDecoderWithHighestLayerID] -> block_size());
-            kodo::copy_symbols(kodo::storage(data_out), decoders[finishedDecoderWithHighestLayerID]);
-
-            //print_status();
-
-            is_finished = 2;
-            finished_layer_id = decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID;
+            if (finishedDecoderWithHighestLayerID>=0) {
+                //copy the decoded symbols
+                data_out.resize(decoders[finishedDecoderWithHighestLayerID] -> block_size());
+                kodo::copy_symbols(kodo::storage(data_out), decoders[finishedDecoderWithHighestLayerID]);
+                
+                //print_status();
+                
+                is_finished = 2;
+                finished_layer_id = decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID;
+            }
+            else{
+                is_finished = 0;
+                finished_layer_id=0;
+            }
 
             release_received_data_packets(1);
 
