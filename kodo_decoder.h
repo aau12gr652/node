@@ -27,7 +27,7 @@ class kodo_decoder {
     };
 
     std::vector<stamp> received_stamps;
-    std::vector<void*> received_data_packets;
+    std::vector<std::vector<void*> > received_data_packets;
 
     std::vector<uint8_t> data_out;
     std::vector<rlnc_decoder::pointer> decoders;

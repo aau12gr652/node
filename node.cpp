@@ -8,7 +8,7 @@ using namespace std;
 int main(){
     char data[100];
     
-    vector<uint8_t> returnval(13);
+    vector<uint8_t> returnval(20);
     
     kodo_decoder Mydecoder=kodo_decoder();
     
@@ -32,7 +32,7 @@ int main(){
         
         returnval = Mydecoder.decode(header,*received_letter);
         
-        //cout<< "modtog fra lag: " << header->Layer_ID*1 << endl;
+        //cout<< "modtog fra lag: " << header->Layer_ID*1 << received_letter->size*1<< endl;
         
         if (Mydecoder.has_finished_decoding() && Mydecoder.get_current_generation_id() != decoded_generation_id) {
             

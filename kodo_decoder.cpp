@@ -40,30 +40,35 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
     }
 
 
-
+    
+    
     void* data = letter.data;
-
-    void *data_stored = malloc(1500);
-
-    memcpy(data_stored , data , letter.size);
-
-    //Zero pad the incoming data
-    memset((uint16_t*)data_stored + letter.size, 0, 1500-letter.size);
-
-    //Store the received packet as the first element
-    received_data_packets.insert(received_data_packets.begin(), data_stored);
 
     //Store the received stamp as the first element
     received_stamps.insert(received_stamps.begin(),*header);
 
-
+    vector<void *> received_data_packet_for_layer(header->Number_Of_Layers);
+    
+    
+    for (int n=0; n<header->Number_Of_Layers; n++) {
+        
+        void *data_stored = malloc(1500);
+                
+        memcpy(data_stored , data , letter.size);
+        
+        //Zero pad the incoming data
+        memset((uint8_t*)data_stored + letter.size, 0, 1500-letter.size);
+        
+        received_data_packet_for_layer[n] = data_stored;
+    }
+    
+    received_data_packets.insert(received_data_packets.begin(), received_data_packet_for_layer); 
 
     //Check if it's the first generation or a different one than before
     if (CurrentGenerationID != header->Generation_ID) {
-        
         //cout << "new generation detected" <<endl;
-
-
+        
+        
         //If there is any old decoders, then check if they are done and empty them
         if (decoderinfo.size() != 0 && is_finished == 0) {
 
@@ -155,10 +160,10 @@ void kodo_decoder::distribute_packet_to_decoders(stamp* header, void* data){
         if (decoderinfo[i].Layer_ID >= header->Layer_ID) {
 
             //print_stamp(header);
+            
+            decoders[i]->decode((uint8_t*)received_data_packets[0][decoderinfo[i].Layer_ID-1]);
 
-            decoders[i]->decode((uint8_t *)data);
-
-            //cout << "Decoding Layer: " << decoderinfo[i].Layer_ID*1 << endl;
+            //cout << "Decoding Layer: " << decoderinfo[i].Layer_ID*1 << " Size of vector: " << received_data_packets[0].size() << endl;
         }
 
 
@@ -178,6 +183,7 @@ void kodo_decoder::distribute_packet_to_decoders(stamp* header, void* data){
             is_finished = 1;
 
             release_received_data_packets(0);
+            break;
 
         }
 
@@ -202,12 +208,12 @@ void kodo_decoder::createDecoderWithHeader(stamp* header){
         if (decoderinfo[i].Layer_ID <= header->Layer_ID) {
 
             for (int n=0; n<received_data_packets.size(); n++) {
-
+                
                 if (received_stamps[n].Layer_ID < decoderinfo[i].Layer_ID) {
 
-                    decoders[i]->decode((uint8_t *)(received_data_packets[n]));
-
-                    //cout << "Packet: " << n*1 << " ->Decoder: " << decoderinfo[i].Layer_ID*1 << endl;
+                    decoders[i]->decode((uint8_t *)(received_data_packets[n][decoderinfo[i].Layer_ID-1]));
+                    
+                    cout << "Packet: " << n*1 << " ->Decoder: " << decoderinfo[i].Layer_ID*1 << endl;
                 }
 
 
@@ -250,6 +256,9 @@ void kodo_decoder::release_received_data_packets(int start)
 {
     int stop = received_data_packets.size();
     for (int n = start; n < stop; n++)
-        free(received_data_packets[n]);
+        for (int i=0; i<received_data_packets[start].size(); i++)
+            free(received_data_packets[n][i]);
+    
     received_data_packets.erase(received_data_packets.begin()+start,received_data_packets.end());
+    
 }
