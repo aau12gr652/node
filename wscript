@@ -62,6 +62,10 @@ def build(bld):
         cxxflags += ['-O2', '-g', '-ftree-vectorize',
                      '-Wextra', '-Wall']
 
+    if bld.env.TOOLCHAIN == 'darwin':
+        cxxflags += ['-O2', '-g', '-ftree-vectorize',
+                     '-Wextra', '-Wall']
+
     if bld.env.TOOLCHAIN == 'win32':
         cxxflags += ['/O2', '/Ob2', '/W3', '/EHsc']
 
