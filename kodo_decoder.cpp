@@ -61,13 +61,13 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
     //Check if it's the first generation or a different one than before
     if (CurrentGenerationID != header->Generation_ID) {
         
-        cout << "new generation detected" <<endl;
+        //cout << "new generation detected" <<endl;
 
 
         //If there is any old decoders, then check if they are done and empty them
         if (decoderinfo.size() != 0 && is_finished == 0) {
 
-            cout << "finished ON new generation" << endl;
+            //cout << "finished ON new generation" << endl;
             print_status();
 
             //Find the finished decoder with the highest layer ID
