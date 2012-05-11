@@ -163,7 +163,7 @@ void kodo_decoder::distribute_packet_to_decoders(stamp* header, void* data){
             
             decoders[i]->decode((uint8_t*)received_data_packets[0][decoderinfo[i].Layer_ID-1]);
 
-            //cout << "Decoding Layer: " << decoderinfo[i].Layer_ID*1 << " Size of vector: " << received_data_packets[0].size() << endl;
+            //cout << "Decoding Layer: " << decoderinfo[i].Layer_ID*1 << endl;
         }
 
 
@@ -171,7 +171,7 @@ void kodo_decoder::distribute_packet_to_decoders(stamp* header, void* data){
         if (decoders[i]->is_complete() && decoderinfo[i].Layer_ID == header->Number_Of_Layers && is_finished == 0) {
 
             //cout << "finished before new generation" << endl;
-            print_status();
+            //print_status();
 
             //copy the decoded symbols
 
@@ -213,7 +213,7 @@ void kodo_decoder::createDecoderWithHeader(stamp* header){
 
                     decoders[i]->decode((uint8_t *)(received_data_packets[n][decoderinfo[i].Layer_ID-1]));
                     
-                    cout << "Packet: " << n*1 << " ->Decoder: " << decoderinfo[i].Layer_ID*1 << endl;
+                    //cout << "Packet: " << n*1 << " ->Decoder: " << decoderinfo[i].Layer_ID*1 << endl;
                 }
 
 

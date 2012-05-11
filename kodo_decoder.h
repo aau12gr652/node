@@ -13,7 +13,7 @@ class kodo_decoder {
 
     uint8_t CurrentGenerationID;
     // Typdefs for the decoder type we wish to use
-    typedef kodo::full_rlnc_decoder<fifi::binary8> rlnc_decoder;
+    typedef kodo::full_rlnc_decoder<fifi::binary> rlnc_decoder;
 
     void createDecoderWithHeader(stamp* header);
 
@@ -66,7 +66,7 @@ public:
 
 
 
-#define MAX_SYMBOL_SIZE 1400
-#define MAX_NUMBER_OF_SYMBOLS 1400
+#define MAX_SYMBOL_SIZE 1500
+#define MAX_NUMBER_OF_SYMBOLS 1500
 
 #endif
