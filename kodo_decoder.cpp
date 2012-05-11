@@ -41,7 +41,7 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
 
 
     
-    
+    ///////TOUCHING THE DATA!
     void* data = letter.data;
 
     //Store the received stamp as the first element
@@ -53,15 +53,18 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
     for (int n=0; n<header->Number_Of_Layers; n++) {
         
         void *data_stored = malloc(1500);
-                
+        
+        ///////TOUCHING THE DATA!
         memcpy(data_stored , data , letter.size);
         
         //Zero pad the incoming data
         memset((uint8_t*)data_stored + letter.size, 0, 1500-letter.size);
         
+        ///////TOUCHING THE DATA!
         received_data_packet_for_layer[n] = data_stored;
     }
     
+    ///////TOUCHING THE DATA!
     received_data_packets.insert(received_data_packets.begin(), received_data_packet_for_layer); 
 
     //Check if it's the first generation or a different one than before
@@ -98,7 +101,8 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
                 is_finished = 0;
                 finished_layer_id=0;
             }
-
+            
+            ///////TOUCHING THE DATA!
             release_received_data_packets(1);
 
         }
@@ -110,7 +114,7 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
 
 
 
-
+///////TOUCHING THE DATA!///////TOUCHING THE DATA!///////TOUCHING THE DATA!
         //Clear the vectors holding the decoders from the old generation (Also calls the destructors of the elements in the vectors)
         decoderinfo.clear();
         decoders.clear();
