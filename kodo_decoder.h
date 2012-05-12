@@ -8,6 +8,8 @@
 
 #include "kodo/rlnc/full_vector_codes.h"
 #include <postoffice/Postoffice.h>
+#include <iostream>
+#include <deque>
 
 class kodo_decoder {
 
@@ -27,7 +29,7 @@ class kodo_decoder {
     };
 
     std::vector<stamp> received_stamps;
-    std::vector<std::vector<void*> > received_data_packets;
+    std::deque<std::vector<void*> > received_data_packets;
 
     std::vector<uint8_t> data_out;
     std::vector<rlnc_decoder::pointer> decoders;
