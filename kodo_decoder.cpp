@@ -262,5 +262,4 @@ void kodo_decoder::release_received_data_packets(int start)
             free(received_data_packets[n][i]);
 
     received_data_packets.erase(received_data_packets.begin()+start,received_data_packets.end());
-
 }
