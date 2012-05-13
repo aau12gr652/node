@@ -81,7 +81,7 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
 
             for (int i=0; i<decoders.size(); i++) {
                 if (decoders[i]->is_complete())
-                    if (finishedDecoderWithHighestLayerID<=decoderinfo[i].Layer_ID)
+                    if (decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID<=decoderinfo[i].Layer_ID)
                         finishedDecoderWithHighestLayerID = i;
             }
 
