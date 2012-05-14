@@ -64,6 +64,8 @@ public:
 
     uint8_t get_current_generation_id();
     uint8_t has_finished_decoding();
+
+    int is_layer_finish(int L);
 };
 
 

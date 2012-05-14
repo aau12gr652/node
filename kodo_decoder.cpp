@@ -159,7 +159,7 @@ void kodo_decoder::distribute_packet_to_decoders(stamp* header, void* data){
     //distribute the received packet to where it belongs by deciding upon the Layer_ID
     for (int i=0; i<decoderinfo.size(); i++) {
 
-        if (decoderinfo[i].Layer_ID >= header->Layer_ID) {
+        if (decoderinfo[i].Layer_ID == header->Layer_ID) { // FJERNET >
 
             //print_stamp(header);
 
@@ -167,6 +167,8 @@ void kodo_decoder::distribute_packet_to_decoders(stamp* header, void* data){
 
             //cout << "Decoding Layer: " << decoderinfo[i].Layer_ID*1 << endl;
         }
+		if (decoders[i]->is_complete())
+			decoderinfo[i].isFinishedDecoding = true;
 
 
         //if the largest decoder is complete then set the generation to finished!
@@ -211,7 +213,7 @@ void kodo_decoder::createDecoderWithHeader(stamp* header){
 
             for (int n=0; n<received_data_packets.size(); n++) {
 
-                if (received_stamps[n].Layer_ID < decoderinfo[i].Layer_ID) {
+                if (received_stamps[n].Layer_ID == decoderinfo[i].Layer_ID) { // HER HAR VI FJERNET ET >
 
                     decoders[i]->decode((uint8_t *)(received_data_packets[n][decoderinfo[i].Layer_ID-1]));
 
@@ -221,8 +223,9 @@ void kodo_decoder::createDecoderWithHeader(stamp* header){
 
             }
         }
+        if (decoders[i]->is_complete())
+			decoderinfo[i].isFinishedDecoding = true;
     }
-
 }
 
 
@@ -262,4 +265,12 @@ void kodo_decoder::release_received_data_packets(int start)
             free(received_data_packets[n][i]);
 
     received_data_packets.erase(received_data_packets.begin()+start,received_data_packets.end());
+}
+
+int kodo_decoder::is_layer_finish(int L)
+{
+	for (int n = 0; n < decoderinfo.size(); n++)
+		if (decoderinfo[n].Layer_ID == L && decoderinfo[n].isFinishedDecoding)
+			return 1;
+	return 0;
 }
