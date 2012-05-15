@@ -165,7 +165,7 @@ void kodo_decoder::distribute_packet_to_decoders(stamp* header, void* data){
     //distribute the received packet to where it belongs by deciding upon the Layer_ID
     for (int i=0; i<decoderinfo.size(); i++) {
 
-        if (decoderinfo[i].Layer_ID == header->Layer_ID) { // FJERNET >
+        if (decoderinfo[i].Layer_ID >= header->Layer_ID) { // FJERNET >
 
             //print_stamp(header);
 
@@ -219,7 +219,7 @@ void kodo_decoder::createDecoderWithHeader(stamp* header){
 
             for (int n=0; n<received_data_packets.size(); n++) {
 
-                if (received_stamps[n].Layer_ID == decoderinfo[i].Layer_ID) { // HER HAR VI FJERNET ET >
+                if (received_stamps[n].Layer_ID >= decoderinfo[i].Layer_ID) { // HER HAR VI FJERNET ET >
 
                     decoders[i]->decode((uint8_t *)(received_data_packets[n][decoderinfo[i].Layer_ID-1]));
 
