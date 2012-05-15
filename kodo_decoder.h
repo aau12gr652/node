@@ -71,6 +71,6 @@ public:
 
 
 #define MAX_SYMBOL_SIZE 1500
-#define MAX_NUMBER_OF_SYMBOLS 1500
+#define MAX_NUMBER_OF_SYMBOLS 2200
 
 #endif
