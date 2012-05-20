@@ -276,7 +276,10 @@ void kodo_decoder::release_received_data_packets(int start)
 int kodo_decoder::is_layer_finish(int L)
 {
 	for (int n = 0; n < decoderinfo.size(); n++)
-		if (decoderinfo[n].Layer_ID == L && decoderinfo[n].isFinishedDecoding)
-			return 1;
-	return 0;
+		if (decoderinfo[n].Layer_ID == L)
+			if (decoderinfo[n].isFinishedDecoding)
+				return 1;
+			else
+				return 0;
+	return -1;
 }
