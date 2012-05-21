@@ -81,11 +81,11 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
 
             for (int i=0; i<decoders.size(); i++) {
                 if (decoders[i]->is_complete())
-                	if (finishedDecoderWithHighestLayerID < 0)
-                		finishedDecoderWithHighestLayerID = i;
-    	            else
-	                    if (decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID<=decoderinfo[i].Layer_ID)
-    	                    finishedDecoderWithHighestLayerID = i;
+                    if (finishedDecoderWithHighestLayerID < 0)
+                        finishedDecoderWithHighestLayerID = i;
+                    else
+                        if (decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID<=decoderinfo[i].Layer_ID)
+                            finishedDecoderWithHighestLayerID = i;
 
             }
 
@@ -100,7 +100,7 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
                 finished_layer_id = decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID;
             }
             else{
-               	//cout << "finishedDecoderWithHighestLayerID == -1: " << finishedDecoderWithHighestLayerID*1 << " Layer: " << decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID*1 << endl;
+                   //cout << "finishedDecoderWithHighestLayerID == -1: " << finishedDecoderWithHighestLayerID*1 << " Layer: " << decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID*1 << endl;
                 is_finished = 0;
                 finished_layer_id=0;
             }
@@ -110,7 +110,7 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
 
         }
         else{
-        	//cout << "Decoderinfo.size == 0: " << decoderinfo.size()*1 << " OR is_finished != 0: " << decoderinfo.size()*1 << endl;
+            //cout << "Decoderinfo.size == 0: " << decoderinfo.size()*1 << " OR is_finished != 0: " << decoderinfo.size()*1 << endl;
             is_finished = 0;
             finished_layer_id=0;
         }
@@ -173,8 +173,8 @@ void kodo_decoder::distribute_packet_to_decoders(stamp* header, void* data){
 
             //cout << "Decoding Layer: " << decoderinfo[i].Layer_ID*1 << endl;
         }
-		if (decoders[i]->is_complete())
-			decoderinfo[i].isFinishedDecoding = true;
+        if (decoders[i]->is_complete())
+            decoderinfo[i].isFinishedDecoding = true;
 
 
         //if the largest decoder is complete then set the generation to finished!
@@ -230,7 +230,7 @@ void kodo_decoder::createDecoderWithHeader(stamp* header){
             }
         }
         if (decoders[i]->is_complete())
-			decoderinfo[i].isFinishedDecoding = true;
+            decoderinfo[i].isFinishedDecoding = true;
     }
 }
 
@@ -275,11 +275,11 @@ void kodo_decoder::release_received_data_packets(int start)
 
 int kodo_decoder::is_layer_finish(int L)
 {
-	for (int n = 0; n < decoderinfo.size(); n++)
-		if (decoderinfo[n].Layer_ID == L)
-			if (decoderinfo[n].isFinishedDecoding)
-				return 1;
-			else
-				return 0;
-	return -1;
+    for (int n = 0; n < decoderinfo.size(); n++)
+        if (decoderinfo[n].Layer_ID == L)
+            if (decoderinfo[n].isFinishedDecoding)
+                return 1;
+            else
+                return 0;
+    return -1;
 }
