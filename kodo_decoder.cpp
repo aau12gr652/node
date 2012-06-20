@@ -23,7 +23,7 @@ kodo_decoder::kodo_decoder(){
 }
 
 std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
-
+	int new_layer = 0;
 
     //Store the generation status info
     for (int i=0; i<generation_status.size(); i++) {
@@ -34,10 +34,9 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
         else if (generation_status.size() == i+1){
             layer_status newlayerstatus = {header->Layer_ID,1};
             generation_status.push_back(newlayerstatus);
+            new_layer = 1;
         }
     }
-
-
 
     ///////TOUCHING THE DATA!
     void* data = letter.data;
@@ -52,15 +51,30 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
 
         void *data_stored = malloc(1500);
 
+        //Zero pad the incoming data
+        memset((uint8_t*)data_stored, 0, 1500);
+
         ///////TOUCHING THE DATA!
         memcpy(data_stored , data , letter.size);
 
-        //Zero pad the incoming data
-        memset((uint8_t*)data_stored + letter.size, 0, 1500-letter.size);
+/*        //Zero pad the incoming data
+        memset((uint8_t*)data_stored + letter.size, 0, 1500-letter.size); */
 
         ///////TOUCHING THE DATA!
         received_data_packet_for_layer[n] = data_stored;
     }
+
+/*    if (new_layer)
+    {
+        for (int n = 0; n < received_data_packets.size(); n++)
+        	if (received_stamps[n].Layer_ID <= header->Layer_ID)
+	        	fit_packet(received_data_packets[n][header->Layer_ID - 1], received_stamps[n].Layer_ID, header->Layer_ID, header->Symbol_Size);
+    }*/
+/*    else
+    	for (int n = 0; n < header->Number_Of_Layers; n++)
+        	if (header->Layer_ID <= n+1)
+		    	fit_packet(received_data_packets[0][n], header->Layer_ID, n+1, header->Symbol_Size);
+*/
 
     ///////TOUCHING THE DATA!
     received_data_packets.insert(received_data_packets.begin(), received_data_packet_for_layer);
@@ -100,7 +114,6 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
                 finished_layer_id = decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID;
             }
             else{
-                   //cout << "finishedDecoderWithHighestLayerID == -1: " << finishedDecoderWithHighestLayerID*1 << " Layer: " << decoderinfo[finishedDecoderWithHighestLayerID].Layer_ID*1 << endl;
                 is_finished = 0;
                 finished_layer_id=0;
             }
@@ -110,7 +123,6 @@ std::vector<uint8_t> kodo_decoder::decode(stamp* header, serial_data letter){
 
         }
         else{
-            //cout << "Decoderinfo.size == 0: " << decoderinfo.size()*1 << " OR is_finished != 0: " << decoderinfo.size()*1 << endl;
             is_finished = 0;
             finished_layer_id=0;
         }
@@ -165,10 +177,11 @@ void kodo_decoder::distribute_packet_to_decoders(stamp* header, void* data){
     //distribute the received packet to where it belongs by deciding upon the Layer_ID
     for (int i=0; i<decoderinfo.size(); i++) {
 
-        if (decoderinfo[i].Layer_ID >= header->Layer_ID) { // FJERNET >
+        if (decoderinfo[i].Layer_ID >= header->Layer_ID) { // HAVDE FJERNET >
 
             //print_stamp(header);
-
+			if (decoderinfo[i].Layer_ID != header->Layer_ID)
+				fit_packet(received_data_packets[0][decoderinfo[i].Layer_ID-1], received_stamps[0].Layer_ID, decoderinfo[i].Layer_ID, header->Symbol_Size);
             decoders[i]->decode((uint8_t*)received_data_packets[0][decoderinfo[i].Layer_ID-1]);
 
             //cout << "Decoding Layer: " << decoderinfo[i].Layer_ID*1 << endl;
@@ -213,17 +226,19 @@ void kodo_decoder::createDecoderWithHeader(stamp* header){
 
     //Distribute the relevant old packets to the new decoder
 
-    for (int i=0; i<decoderinfo.size(); i++) {
+	int i = decoderinfo.size() - 1;
+//    for (int i=0; i<decoderinfo.size(); i++)
+    {
 
         if (decoderinfo[i].Layer_ID <= header->Layer_ID) {
 
             for (int n=0; n<received_data_packets.size(); n++) {
 
-                if (received_stamps[n].Layer_ID >= decoderinfo[i].Layer_ID) { // HER HAR VI FJERNET ET >
+                if (received_stamps[n].Layer_ID <= decoderinfo[i].Layer_ID) { // HER HAVDE VI FJERNET ET <
 
+					if (received_stamps[n].Layer_ID != decoderinfo[i].Layer_ID)
+						fit_packet(received_data_packets[n][decoderinfo[i].Layer_ID-1], received_stamps[n].Layer_ID, decoderinfo[i].Layer_ID, header->Symbol_Size);
                     decoders[i]->decode((uint8_t *)(received_data_packets[n][decoderinfo[i].Layer_ID-1]));
-
-                    //cout << "Packet: " << n*1 << " ->Decoder: " << decoderinfo[i].Layer_ID*1 << endl;
                 }
 
 
@@ -282,4 +297,54 @@ int kodo_decoder::is_layer_finish(int L)
             else
                 return 0;
     return -1;
+}
+
+std::vector<uint8_t> kodo_decoder::get_data_from_layer(int L)
+{
+	int i;
+    for (i = 0; i < decoderinfo.size(); i++)
+        if (decoderinfo[i].Layer_ID == L)
+            if (decoderinfo[i].isFinishedDecoding)
+            	break;
+    data_out.resize(decoders[i] -> block_size());
+    kodo::copy_symbols(kodo::storage(data_out), decoders[i]);
+    return data_out;
+}
+
+void kodo_decoder::fit_packet(void* packet, int from_layer, int to_layer, int symbol_size)
+{
+	int flag_length = 4;
+	int from_layer_index = -1, to_layer_index = -1;
+
+	for (int n = 0; n < decoderinfo.size(); n++)
+		if (decoderinfo[n].Layer_ID == from_layer)
+			from_layer_index = n;
+	for (int n = 0; n < decoderinfo.size(); n++)
+		if (decoderinfo[n].Layer_ID == to_layer)
+			to_layer_index = n;
+
+	if (from_layer < to_layer && from_layer_index >= 0 && to_layer_index >= 0)
+	{
+		int from_layer_size = decoderinfo[from_layer_index].Layer_Size;
+		int to_layer_size = decoderinfo[to_layer_index].Layer_Size;
+
+		int from_layer_vector_size = std::ceil(from_layer_size/(float)8) + 1;
+		int to_layer_vector_size = std::ceil(to_layer_size/(float)8) + 1;
+
+//		void* tmp = malloc(1500);
+//		memcpy(tmp, packet, 1500);
+
+		memcpy((uint8_t*)packet + to_layer_vector_size + symbol_size, (uint8_t*)packet + from_layer_vector_size + symbol_size, flag_length);
+//		std::cout << "memcpy done " << (long)((uint8_t*)packet + to_layer_vector_size + symbol_size) << " " << (long)((uint8_t*)packet + from_layer_vector_size + symbol_size) << " " << flag_length << std::endl;
+//		std::cout << "memset not done " << (long)((uint8_t*)packet + from_layer_vector_size + symbol_size) << " " << to_layer_vector_size - from_layer_vector_size << std::endl;
+		memset((uint8_t*)packet + from_layer_vector_size + symbol_size, 0 , to_layer_vector_size - from_layer_vector_size);
+
+/*		std::cout << "Compare: " << std::endl;
+		for (int n = 0; n < 1500; n++)
+		{
+				if (((uint8_t*)packet)[n] != ((uint8_t*)tmp)[n])
+					std::cout << n << " Org: " << ((uint8_t*)tmp)[n]*1 << " New: " << ((uint8_t*)packet)[n]*1 << std::endl;
+		}
+		free(tmp);*/
+	}
 }

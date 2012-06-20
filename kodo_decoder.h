@@ -23,7 +23,7 @@ class kodo_decoder {
     rlnc_decoder::factory* decoder_factory;
 
     struct decoderInfoStruct{
-        uint8_t Layer_Size;
+        uint16_t Layer_Size;
         uint8_t Layer_ID;
         bool isFinishedDecoding;
     };
@@ -53,6 +53,7 @@ class kodo_decoder {
     void release_received_data_packets(int start);
 
 
+	void fit_packet(void* packet, int from_layer, int to_layer, int symbol_size);
 public:
 
     uint8_t is_finished; //Has the value 0 if false, 1 if it finished the highest layer, 2 if it was forced to finish
@@ -66,6 +67,8 @@ public:
     uint8_t has_finished_decoding();
 
     int is_layer_finish(int L);
+
+    std::vector<uint8_t> get_data_from_layer(int L);
 };
 
 
